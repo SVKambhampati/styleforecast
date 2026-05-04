@@ -15,15 +15,20 @@
       <a href="{{ url_for('index') }}" class="wordmark">
         <span class="wordmark-style">Style</span><span class="wordmark-forecast">Forecast</span>
       </a>
-      <nav class="site-nav">
+      <nav class="site-nav" id="siteNav">
         <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">Dashboard</a>
-        <a href="{{ url_for('wardrobe') }}" class="nav-link {% if request.endpoint == 'wardrobe' %}active{% endif %}">Wardrobe</a>
+        <a href="{{ url_for('wardrobe') }}" class="nav-link {% if request.endpoint == 'wardrobe' %}active{% endif %}" id="navWardrobe">Wardrobe</a>
         <a href="{{ url_for('favorites') }}" class="nav-link {% if request.endpoint == 'favorites' %}active{% endif %}">Favorites</a>
         <a href="{{ url_for('history') }}" class="nav-link {% if request.endpoint == 'history' %}active{% endif %}">History</a>
       </nav>
-      <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">
-        <span></span><span></span><span></span>
-      </button>
+      <div class="header-right">
+        <button class="profile-btn" id="profileBtn" title="Your profile" style="display:none">
+          <span class="profile-avatar" id="profileAvatar">?</span>
+        </button>
+        <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -50,6 +55,138 @@
       <span class="footer-meta">Weather-aware dressing, every day.</span>
     </div>
   </footer>
+
+  <!-- ── Onboarding Modal ──────────────────────────────────── -->
+  <div class="onboarding-overlay" id="onboardingOverlay">
+    <div class="onboarding-modal">
+
+      <!-- Step 1: Welcome -->
+      <div class="ob-step active" id="obStep1">
+        <div class="ob-brand">
+          <span class="wordmark-style">Style</span><span class="wordmark-forecast">Forecast</span>
+        </div>
+        <h1 class="ob-title">Dress for the<br><em>weather you're in.</em></h1>
+        <p class="ob-subtitle">StyleForecast combines live weather data with your personal wardrobe to suggest outfits that actually make sense for the day.</p>
+        <div class="ob-actions">
+          <button class="btn btn--accent ob-next" data-next="2">Get started →</button>
+        </div>
+        <div class="ob-steps-indicator">
+          <span class="ob-dot active"></span>
+          <span class="ob-dot"></span>
+          <span class="ob-dot"></span>
+        </div>
+      </div>
+
+      <!-- Step 2: Name + City -->
+      <div class="ob-step" id="obStep2">
+        <p class="label-overline">Set up your profile</p>
+        <h2 class="ob-title ob-title--sm">Tell us a bit<br><em>about yourself.</em></h2>
+        <div class="ob-form">
+          <div class="form-group">
+            <label class="form-label">Your name</label>
+            <input type="text" id="obName" class="form-input" placeholder="e.g. Alex" autocomplete="off" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Your city</label>
+            <input type="text" id="obCity" class="form-input" placeholder="e.g. New York" autocomplete="off" />
+            <span class="form-hint">We'll use this to load weather automatically.</span>
+          </div>
+        </div>
+        <div class="ob-actions">
+          <button class="btn btn--ghost ob-back" data-back="1">← Back</button>
+          <button class="btn btn--accent ob-next" data-next="3">Continue →</button>
+        </div>
+        <div class="ob-steps-indicator">
+          <span class="ob-dot"></span>
+          <span class="ob-dot active"></span>
+          <span class="ob-dot"></span>
+        </div>
+      </div>
+
+      <!-- Step 3: Style preference -->
+      <div class="ob-step" id="obStep3">
+        <p class="label-overline">Your style</p>
+        <h2 class="ob-title ob-title--sm">How do you<br><em>usually dress?</em></h2>
+        <p class="ob-subtitle">This helps us weigh outfit recommendations toward your vibe.</p>
+        <div class="style-cards">
+          <button class="style-card" data-style="casual">
+            <span class="style-card-icon">👕</span>
+            <span class="style-card-label">Casual</span>
+            <span class="style-card-desc">Relaxed, everyday comfort</span>
+          </button>
+          <button class="style-card" data-style="smart casual">
+            <span class="style-card-icon">🧥</span>
+            <span class="style-card-label">Smart Casual</span>
+            <span class="style-card-desc">Put-together but not stiff</span>
+          </button>
+          <button class="style-card" data-style="formal">
+            <span class="style-card-icon">👔</span>
+            <span class="style-card-label">Formal</span>
+            <span class="style-card-desc">Polished and professional</span>
+          </button>
+        </div>
+        <div class="ob-actions">
+          <button class="btn btn--ghost ob-back" data-back="2">← Back</button>
+          <button class="btn btn--accent" id="obFinish">Let's go →</button>
+        </div>
+        <div class="ob-steps-indicator">
+          <span class="ob-dot"></span>
+          <span class="ob-dot"></span>
+          <span class="ob-dot active"></span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Profile Edit Modal ────────────────────────────────── -->
+  <div class="profile-modal-overlay" id="profileModalOverlay">
+    <div class="profile-modal">
+      <div class="drawer-header">
+        <h2 class="drawer-title">Your Profile</h2>
+        <button class="drawer-close" id="closeProfileModal">×</button>
+      </div>
+      <div class="ob-form">
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input type="text" id="editName" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Default City</label>
+          <input type="text" id="editCity" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Style Preference</label>
+          <select id="editStyle" class="form-select">
+            <option value="casual">Casual</option>
+            <option value="smart casual">Smart Casual</option>
+            <option value="formal">Formal</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-actions" style="margin-top:24px">
+        <button class="btn btn--ghost" id="cancelProfileEdit">Cancel</button>
+        <button class="btn btn--accent" id="saveProfileEdit">Save</button>
+      </div>
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--c-border)">
+        <button class="btn btn--ghost btn--sm" id="resetOnboarding">Reset &amp; redo walkthrough</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Tour Overlay ──────────────────────────────────────── -->
+  <div class="tour-overlay" id="tourOverlay">
+    <div class="tour-spotlight" id="tourSpotlight"></div>
+    <div class="tour-card" id="tourCard">
+      <p class="tour-step-label" id="tourStepLabel">Step 1 of 4</p>
+      <h3 class="tour-card-title" id="tourCardTitle"></h3>
+      <p class="tour-card-text" id="tourCardText"></p>
+      <div class="tour-card-actions">
+        <button class="btn btn--ghost btn--sm" id="tourSkip">Skip tour</button>
+        <button class="btn btn--accent btn--sm" id="tourNext">Next →</button>
+      </div>
+    </div>
+  </div>
 
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
   {% block scripts %}{% endblock %}

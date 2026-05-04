@@ -77,7 +77,10 @@
   <section class="dashboard-main">
 
     <div class="section-header">
-      <h1 class="section-title">Today's Outfit<br><em>Recommendations</em></h1>
+      <div>
+        <p class="greeting-line" id="greetingLine"></p>
+        <h1 class="section-title">Today's Outfit<br><em>Recommendations</em></h1>
+      </div>
       {% if weather %}
       <button class="btn btn--ghost" id="refreshBtn">Refresh</button>
       {% endif %}
