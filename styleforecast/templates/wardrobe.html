@@ -64,6 +64,47 @@
         <div class="type-list" id="typeList"></div>
       </div>
 
+      <!-- Step 3b: Custom item -->
+      <div class="picker-step" id="pStepCustom">
+        <p class="label-overline">Custom item</p>
+        <h2 class="picker-title">Describe your <em>item</em></h2>
+        <div class="ob-form">
+          <div class="form-group">
+            <label class="form-label">Item name</label>
+            <input type="text" id="customName" class="form-input" placeholder="e.g. Vintage Denim Jacket" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Warmth</label>
+            <div class="pill-group" id="customWarmthGroup">
+              <button type="button" class="pill-btn" data-val="light">Light</button>
+              <button type="button" class="pill-btn" data-val="medium">Medium</button>
+              <button type="button" class="pill-btn" data-val="heavy">Heavy</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Formality</label>
+            <div class="pill-group" id="customFormalityGroup">
+              <button type="button" class="pill-btn" data-val="casual">Casual</button>
+              <button type="button" class="pill-btn" data-val="smart casual">Smart Casual</button>
+              <button type="button" class="pill-btn" data-val="formal">Formal</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Season</label>
+            <div class="pill-group" id="customSeasonGroup">
+              <button type="button" class="pill-btn" data-val="all-season">All Season</button>
+              <button type="button" class="pill-btn" data-val="spring">Spring</button>
+              <button type="button" class="pill-btn" data-val="summer">Summer</button>
+              <button type="button" class="pill-btn" data-val="fall">Fall</button>
+              <button type="button" class="pill-btn" data-val="winter">Winter</button>
+            </div>
+          </div>
+        </div>
+        <div class="ob-actions">
+          <button type="button" class="btn btn--accent" id="customContinue">Choose Color →</button>
+        </div>
+      </div>
+
       <!-- Step 4: Color -->
       <div class="picker-step" id="pStepColor">
         <p class="label-overline">Step 4 of 4</p>

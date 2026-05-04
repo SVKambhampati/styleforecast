@@ -939,6 +939,24 @@ button { cursor: pointer; font-family: inherit; }
 .type-item:hover { background: var(--c-surface); padding-left: 8px; }
 .type-item-name { font-size: 14px; font-weight: 500; color: var(--c-text); }
 .type-item-meta { display: flex; gap: 4px; flex-shrink: 0; }
+.type-item--custom .type-item-name { color: var(--c-accent); font-style: italic; }
+
+/* Pill buttons (custom item step) */
+.pill-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill-btn {
+  padding: 7px 16px;
+  border-radius: 99px;
+  border: 1.5px solid var(--c-border);
+  background: var(--c-bg);
+  color: var(--c-text-2);
+  font-family: var(--ff-sans);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition), color var(--transition);
+}
+.pill-btn:hover { border-color: var(--c-accent); color: var(--c-accent); }
+.pill-btn.selected { background: var(--c-accent); border-color: var(--c-accent); color: #fff; }
 
 /* Color swatches */
 .color-grid {

@@ -1,16 +1,18 @@
 /* StyleForecast — wardrobe preset picker */
 
-const state = { gender: null, categoryKey: null, type: null, color: null };
+const state = { gender: null, categoryKey: null, type: null, color: null, isCustom: false };
 
 const steps = {
   gender:   document.getElementById('pStepGender'),
   category: document.getElementById('pStepCategory'),
   type:     document.getElementById('pStepType'),
+  custom:   document.getElementById('pStepCustom'),
   color:    document.getElementById('pStepColor'),
 };
 const backBtn    = document.getElementById('pickerBack');
 const breadcrumb = document.getElementById('pickerBreadcrumb');
 const stepOrder  = ['gender', 'category', 'type', 'color'];
+const stepOrderCustom = ['gender', 'category', 'custom', 'color'];
 
 function showStep(name) {
   Object.values(steps).forEach(s => s?.classList.remove('active'));
@@ -29,14 +31,15 @@ function updateBreadcrumb() {
 
 // ── Back button ──────────────────────────────────────────────
 backBtn?.addEventListener('click', () => {
-  const active = stepOrder.find(s => steps[s]?.classList.contains('active'));
-  const idx    = stepOrder.indexOf(active);
+  const order  = state.isCustom ? stepOrderCustom : stepOrder;
+  const active = order.find(s => steps[s]?.classList.contains('active'));
+  const idx    = order.indexOf(active);
   if (idx > 0) {
-    // Clear state for current and forward steps
     if (active === 'color')    { state.color = null; resetColorStep(); }
-    if (active === 'type')     { state.type  = null; }
+    if (active === 'custom')   { state.isCustom = false; state.type = null; }
+    if (active === 'type')     { state.type = null; }
     if (active === 'category') { state.categoryKey = null; }
-    showStep(stepOrder[idx - 1]);
+    showStep(order[idx - 1]);
   }
 });
 
@@ -87,11 +90,78 @@ function buildTypeList() {
       </div>`;
     btn.addEventListener('click', () => {
       state.type = t;
+      state.isCustom = false;
       buildColorGrid();
       showStep('color');
     });
     list.appendChild(btn);
   });
+
+  // Custom item option
+  const customBtn = document.createElement('button');
+  customBtn.className = 'type-item type-item--custom';
+  customBtn.innerHTML = `
+    <span class="type-item-name">Can't find it? Add custom item →</span>`;
+  customBtn.addEventListener('click', () => {
+    state.isCustom = true;
+    state.type = null;
+    resetCustomStep();
+    showStep('custom');
+  });
+  list.appendChild(customBtn);
+}
+
+// ── Step 3b: Custom item ─────────────────────────────────────
+function resetCustomStep() {
+  const nameInput = document.getElementById('customName');
+  if (nameInput) nameInput.value = '';
+  document.querySelectorAll('#pStepCustom .pill-btn').forEach(b => b.classList.remove('selected'));
+}
+
+function setupPillGroup(groupId) {
+  document.querySelectorAll(`#${groupId} .pill-btn`).forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll(`#${groupId} .pill-btn`).forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+  });
+}
+
+setupPillGroup('customWarmthGroup');
+setupPillGroup('customFormalityGroup');
+setupPillGroup('customSeasonGroup');
+
+document.getElementById('customContinue')?.addEventListener('click', () => {
+  const name     = document.getElementById('customName')?.value.trim();
+  const warmth   = document.querySelector('#customWarmthGroup .pill-btn.selected')?.dataset.val;
+  const formality= document.querySelector('#customFormalityGroup .pill-btn.selected')?.dataset.val;
+  const season   = document.querySelector('#customSeasonGroup .pill-btn.selected')?.dataset.val;
+
+  if (!name)      { document.getElementById('customName')?.focus(); return; }
+  if (!warmth)    { showCustomError('Please select a warmth level'); return; }
+  if (!formality) { showCustomError('Please select a formality level'); return; }
+
+  state.type = {
+    label:     name,
+    warmth:    warmth,
+    formality: formality,
+    season:    season || 'all-season',
+    tags:      '',
+  };
+  buildColorGrid();
+  showStep('color');
+});
+
+function showCustomError(msg) {
+  let err = document.getElementById('customError');
+  if (!err) {
+    err = document.createElement('p');
+    err.id = 'customError';
+    err.style.cssText = 'color:var(--c-accent);font-size:13px;margin-top:-8px;';
+    document.querySelector('#pStepCustom .ob-actions')?.before(err);
+  }
+  err.textContent = msg;
+  setTimeout(() => { err.textContent = ''; }, 2500);
 }
 
 // ── Step 4: Color ────────────────────────────────────────────
