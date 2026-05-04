@@ -10,13 +10,16 @@ async function detectLocation() {
     navigator.geolocation.getCurrentPosition(async (pos) => {
       try {
         const { latitude: lat, longitude: lon } = pos.coords;
+        // zoom=10 returns city-level detail; addressdetails gives structured fields
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10&addressdetails=1`,
           { headers: { 'Accept-Language': 'en' } }
         );
         const data = await res.json();
-        const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county || '';
-        const country = data.address?.country_code?.toUpperCase() || '';
+        const addr = data.address || {};
+        // Only use proper city/town/village — never county, as Open-Meteo can't resolve it
+        const city = addr.city || addr.town || addr.village || addr.municipality || addr.hamlet || '';
+        const country = addr.country_code?.toUpperCase() || '';
         resolve(city ? `${city}, ${country}` : '');
       } catch (e) { reject(e); }
     }, reject, { timeout: 8000 });
@@ -568,10 +571,11 @@ document.querySelectorAll('.flash').forEach(el => {
 
     const cityInput = document.querySelector('.city-input');
     const hasWeather = document.querySelector('.weather-panel');
+    const hasError   = document.querySelector('.flash--error');
 
-    if (cityInput && !hasWeather) {
+    // Never auto-submit when an error is already showing — avoids reload loops
+    if (cityInput && !hasWeather && !hasError) {
       if (profile.useGeolocation) {
-        // Silently re-detect location (no prompt if permission already granted)
         detectLocation().then(city => {
           if (city) {
             const p = getProfile() || {};
