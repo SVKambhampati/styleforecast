@@ -15,8 +15,11 @@ app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 # ── Database URI ────────────────────────────────────────────────────────────
 # Priority: DATABASE_URL env var (Neon/Postgres) → /tmp SQLite on Vercel → local SQLite
 _db_url = os.environ.get("DATABASE_URL", "")
+# Normalize legacy Heroku/Neon prefix and switch to pg8000 (pure-Python, works on Vercel)
 if _db_url.startswith("postgres://"):
-    _db_url = _db_url.replace("postgres://", "postgresql://", 1)
+    _db_url = _db_url.replace("postgres://", "postgresql+pg8000://", 1)
+elif _db_url.startswith("postgresql://"):
+    _db_url = _db_url.replace("postgresql://", "postgresql+pg8000://", 1)
 
 if _db_url:
     app.config["SQLALCHEMY_DATABASE_URI"] = _db_url
