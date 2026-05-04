@@ -15,13 +15,18 @@ app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 # ── Database URI ────────────────────────────────────────────────────────────
 # Priority: DATABASE_URL env var (Neon/Postgres) → /tmp SQLite on Vercel → local SQLite
 _db_url = os.environ.get("DATABASE_URL", "")
-# Normalize legacy Heroku/Neon prefix and switch to pg8000 (pure-Python, works on Vercel)
-if _db_url.startswith("postgres://"):
-    _db_url = _db_url.replace("postgres://", "postgresql+pg8000://", 1)
-elif _db_url.startswith("postgresql://"):
-    _db_url = _db_url.replace("postgresql://", "postgresql+pg8000://", 1)
+_engine_opts = {}
 
 if _db_url:
+    # Normalize postgres:// → postgresql+pg8000:// (pg8000 is pure-Python, works on Vercel)
+    if _db_url.startswith("postgres://"):
+        _db_url = _db_url.replace("postgres://", "postgresql+pg8000://", 1)
+    elif _db_url.startswith("postgresql://"):
+        _db_url = _db_url.replace("postgresql://", "postgresql+pg8000://", 1)
+    # Strip sslmode from URL — pg8000 doesn't parse it; pass ssl via connect_args instead
+    import re as _re
+    _db_url = _re.sub(r"[?&]sslmode=[^&]*", "", _db_url)
+    _engine_opts = {"connect_args": {"ssl_context": True}}
     app.config["SQLALCHEMY_DATABASE_URI"] = _db_url
 elif os.environ.get("VERCEL"):
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////tmp/styleforecast.db"
@@ -29,11 +34,17 @@ else:
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///styleforecast.db"
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+if _engine_opts:
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = _engine_opts
 
 db.init_app(app)
 
-with app.app_context():
-    db.create_all()
+# Create tables — wrapped so an unreachable DB at cold-start doesn't crash the import
+try:
+    with app.app_context():
+        db.create_all()
+except Exception:
+    pass
 
 
 # ---------------------------------------------------------------------------
