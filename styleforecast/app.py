@@ -1,11 +1,10 @@
 import os
+import sys
+import traceback as _tb
+
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from dotenv import load_dotenv
 from sqlalchemy import select, desc, func
-
-from models import db, WardrobeItem, WeatherLog, OutfitRating, FavoriteOutfit
-from weather import fetch_weather, fetch_weather_by_coords, fetch_forecast
-from recommend import generate_recommendations
 
 load_dotenv()
 
@@ -13,13 +12,11 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 
 # ── Database URI ────────────────────────────────────────────────────────────
-# Priority: DATABASE_URL env var (Neon/Postgres) → /tmp SQLite on Vercel → local SQLite
 _db_url = os.environ.get("DATABASE_URL", "")
+if _db_url.startswith("postgres://"):
+    _db_url = _db_url.replace("postgres://", "postgresql://", 1)
 
 if _db_url:
-    # Normalize legacy postgres:// prefix (Heroku/Neon)
-    if _db_url.startswith("postgres://"):
-        _db_url = _db_url.replace("postgres://", "postgresql://", 1)
     app.config["SQLALCHEMY_DATABASE_URI"] = _db_url
 elif os.environ.get("VERCEL"):
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////tmp/styleforecast.db"
@@ -28,18 +25,49 @@ else:
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-db.init_app(app)
+# ── Import application modules (catch errors so /debug can report them) ──────
+_import_error = None
+try:
+    from models import db, WardrobeItem, WeatherLog, OutfitRating, FavoriteOutfit
+    from weather import fetch_weather, fetch_weather_by_coords, fetch_forecast
+    from recommend import generate_recommendations
+    db.init_app(app)
+except Exception:
+    _import_error = _tb.format_exc()
+    print("IMPORT ERROR:\n" + _import_error, file=sys.stderr)
 
-# Tables are created lazily on the first request so a slow DB at cold-start
-# never crashes the module import.
+# ── Debug route — always available regardless of import status ───────────────
+@app.route("/debug")
+def debug():
+    info = {
+        "python": sys.version,
+        "db_url_set": bool(os.environ.get("DATABASE_URL")),
+        "db_url_prefix": (os.environ.get("DATABASE_URL") or "")[:30],
+        "import_error": _import_error,
+    }
+    if _import_error is None and "db" in dir():
+        try:
+            from models import db as _db
+            with app.app_context():
+                _db.session.execute(__import__("sqlalchemy").text("SELECT 1"))
+            info["db_connect"] = "ok"
+        except Exception as e:
+            info["db_connect"] = str(e)
+    return "<pre>" + "\n".join(f"{k}: {v}" for k, v in info.items()) + "</pre>"
+
+# Tables created lazily on first real request
 _tables_ready = False
 
 @app.before_request
 def _ensure_tables():
     global _tables_ready
-    if not _tables_ready:
-        db.create_all()
-        _tables_ready = True
+    if not _tables_ready and _import_error is None:
+        try:
+            from models import db as _db
+            _db.create_all()
+            _tables_ready = True
+        except Exception:
+            pass
 
 
 # ---------------------------------------------------------------------------
