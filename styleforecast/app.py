@@ -11,7 +11,9 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///styleforecast.db"
+import os as _os
+_db_path = "/tmp/styleforecast.db" if _os.environ.get("VERCEL") else None
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{_db_path}" if _db_path else "sqlite:///styleforecast.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
