@@ -14,83 +14,67 @@
 
   <!-- ── Add Item Drawer ─────────────────────────────── -->
   <div class="drawer" id="addDrawer">
-    <div class="drawer-inner">
-      <div class="drawer-header">
-        <h2 class="drawer-title">New Item</h2>
+    <div class="drawer-inner picker-drawer">
+
+      <!-- Hidden form submitted at end of flow -->
+      <form action="{{ url_for('wardrobe_add') }}" method="POST" id="pickerForm">
+        <input type="hidden" name="name"         id="pName" />
+        <input type="hidden" name="category"     id="pCategory" />
+        <input type="hidden" name="color"        id="pColor" />
+        <input type="hidden" name="warmth"       id="pWarmth" />
+        <input type="hidden" name="formality"    id="pFormality" />
+        <input type="hidden" name="season"       id="pSeason" />
+        <input type="hidden" name="weather_tags" id="pTags" />
+      </form>
+
+      <!-- Picker header -->
+      <div class="picker-header">
+        <button class="picker-back-btn" id="pickerBack" style="display:none">← Back</button>
+        <div class="picker-breadcrumb" id="pickerBreadcrumb"></div>
         <button class="drawer-close" id="closeDrawer">×</button>
       </div>
-      <form action="{{ url_for('wardrobe_add') }}" method="POST" class="item-form">
-        <div class="form-grid">
-          <div class="form-group form-group--wide">
-            <label class="form-label">Item Name</label>
-            <input type="text" name="name" class="form-input" placeholder="e.g. Navy Chino Trousers" required />
-          </div>
 
-          <div class="form-group">
-            <label class="form-label">Category</label>
-            <select name="category" class="form-select" required>
-              <option value="">— select —</option>
-              <option value="top">Top</option>
-              <option value="bottom">Bottom</option>
-              <option value="outerwear">Outerwear</option>
-              <option value="shoes">Shoes</option>
-              <option value="accessory">Accessory</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Color</label>
-            <input type="text" name="color" class="form-input" placeholder="e.g. Navy" required />
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Warmth</label>
-            <select name="warmth" class="form-select" required>
-              <option value="">— select —</option>
-              <option value="light">Light</option>
-              <option value="medium">Medium</option>
-              <option value="heavy">Heavy</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Formality</label>
-            <select name="formality" class="form-select" required>
-              <option value="">— select —</option>
-              <option value="casual">Casual</option>
-              <option value="smart casual">Smart Casual</option>
-              <option value="formal">Formal</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Season</label>
-            <select name="season" class="form-select" required>
-              <option value="">— select —</option>
-              <option value="all-season">All-Season</option>
-              <option value="spring">Spring</option>
-              <option value="summer">Summer</option>
-              <option value="fall">Fall</option>
-              <option value="winter">Winter</option>
-            </select>
-          </div>
-
-          <div class="form-group form-group--wide">
-            <label class="form-label">Weather Suitability</label>
-            <div class="checkbox-group">
-              <label class="checkbox-label"><input type="checkbox" name="weather_tags" value="rain" /> Rain</label>
-              <label class="checkbox-label"><input type="checkbox" name="weather_tags" value="cold" /> Cold</label>
-              <label class="checkbox-label"><input type="checkbox" name="weather_tags" value="hot" /> Hot</label>
-              <label class="checkbox-label"><input type="checkbox" name="weather_tags" value="windy" /> Windy</label>
-            </div>
-          </div>
+      <!-- Step 1: Gender -->
+      <div class="picker-step active" id="pStepGender">
+        <p class="label-overline">Step 1 of 4</p>
+        <h2 class="picker-title">Who is this<br><em>for?</em></h2>
+        <div class="gender-cards">
+          <button class="gender-card" data-gender="mens">
+            <span class="gender-icon">👔</span>
+            <span class="gender-label">Men's</span>
+          </button>
+          <button class="gender-card" data-gender="womens">
+            <span class="gender-icon">👗</span>
+            <span class="gender-label">Women's</span>
+          </button>
         </div>
+      </div>
 
-        <div class="form-actions">
-          <button type="button" class="btn btn--ghost" id="cancelAdd">Cancel</button>
-          <button type="submit" class="btn btn--accent">Add to Wardrobe</button>
+      <!-- Step 2: Category -->
+      <div class="picker-step" id="pStepCategory">
+        <p class="label-overline">Step 2 of 4</p>
+        <h2 class="picker-title">What <em>type</em><br>of item?</h2>
+        <div class="category-grid" id="categoryGrid"></div>
+      </div>
+
+      <!-- Step 3: Clothing type -->
+      <div class="picker-step" id="pStepType">
+        <p class="label-overline">Step 3 of 4</p>
+        <h2 class="picker-title" id="typeStepTitle">Choose a <em>style</em></h2>
+        <div class="type-list" id="typeList"></div>
+      </div>
+
+      <!-- Step 4: Color -->
+      <div class="picker-step" id="pStepColor">
+        <p class="label-overline">Step 4 of 4</p>
+        <h2 class="picker-title">Pick a <em>color</em></h2>
+        <div class="color-grid" id="colorGrid"></div>
+        <div class="picker-confirm" id="pickerConfirm" style="display:none">
+          <div class="confirm-preview" id="confirmPreview"></div>
+          <button class="btn btn--accent" id="pickerSubmit">Add to Wardrobe</button>
         </div>
-      </form>
+      </div>
+
     </div>
   </div>
 
@@ -211,4 +195,9 @@
   {% endif %}
 
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/presets.js') }}"></script>
+<script src="{{ url_for('static', filename='js/picker.js') }}"></script>
 {% endblock %}

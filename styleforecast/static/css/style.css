@@ -836,6 +836,161 @@ button { cursor: pointer; font-family: inherit; }
   .log-entry-right { text-align: left; }
 }
 
+/* ============================================================
+   Wardrobe Preset Picker
+   ============================================================ */
+.picker-drawer { display: flex; flex-direction: column; height: 100%; }
+
+.picker-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 28px;
+  min-height: 36px;
+}
+.picker-back-btn {
+  background: none;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--c-accent);
+  cursor: pointer;
+  padding: 4px 0;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.picker-back-btn:hover { text-decoration: underline; }
+.picker-breadcrumb {
+  flex: 1;
+  font-size: 12px;
+  color: var(--c-text-3);
+  font-family: var(--ff-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picker-step { display: none; flex-direction: column; gap: 20px; flex: 1; overflow-y: auto; }
+.picker-step.active { display: flex; }
+
+.picker-title {
+  font-family: var(--ff-serif);
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--c-charcoal);
+}
+
+/* Gender cards */
+.gender-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.gender-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 32px 16px;
+  border: 2px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  background: var(--c-bg);
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition), transform 80ms;
+}
+.gender-card:hover  { border-color: var(--c-accent); background: #FDF0E9; }
+.gender-card:active { transform: scale(.97); }
+.gender-icon  { font-size: 40px; line-height: 1; }
+.gender-label { font-size: 15px; font-weight: 600; color: var(--c-text); }
+
+/* Category grid */
+.category-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.category-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 20px 10px;
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  background: var(--c-bg);
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition), transform 80ms;
+}
+.category-tile:hover  { border-color: var(--c-accent); background: #FDF0E9; }
+.category-tile:active { transform: scale(.97); }
+.cat-icon  { font-size: 28px; line-height: 1; }
+.cat-label { font-size: 13px; font-weight: 600; color: var(--c-text); text-align: center; }
+
+/* Type list */
+.type-list { display: flex; flex-direction: column; gap: 0; overflow-y: auto; }
+.type-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 4px;
+  border: none;
+  border-bottom: 1px solid var(--c-border);
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition), padding-left var(--transition);
+  border-radius: 0;
+}
+.type-item:first-child { border-top: 1px solid var(--c-border); }
+.type-item:hover { background: var(--c-surface); padding-left: 8px; }
+.type-item-name { font-size: 14px; font-weight: 500; color: var(--c-text); }
+.type-item-meta { display: flex; gap: 4px; flex-shrink: 0; }
+
+/* Color swatches */
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+.color-swatch {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2.5px solid transparent;
+  cursor: pointer;
+  position: relative;
+  transition: transform 120ms, border-color 120ms, box-shadow 120ms;
+  overflow: visible;
+}
+.color-swatch:hover  { transform: scale(1.12); box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+.color-swatch.selected {
+  border-color: var(--c-accent) !important;
+  transform: scale(1.15);
+  box-shadow: 0 0 0 3px rgba(196,98,45,.2);
+}
+.swatch-label {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  font-family: var(--ff-mono);
+  color: var(--c-text-3);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms;
+}
+.color-swatch:hover .swatch-label,
+.color-swatch.selected .swatch-label { opacity: 1; }
+
+/* Confirm bar */
+.picker-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  background: var(--c-surface);
+  border-radius: var(--radius-lg);
+  margin-top: 28px;
+  border: 1.5px solid var(--c-border);
+}
+.confirm-preview { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+
 /* ── Utility ─────────────────────────────────────────────────── */
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
 
