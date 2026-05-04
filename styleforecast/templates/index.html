@@ -54,13 +54,8 @@
       </div>
 
       <div class="weather-icon-row">
-        {% if weather.icon %}
-        <img
-          src="https://openweathermap.org/img/wn/{{ weather.icon }}@2x.png"
-          alt="{{ weather.condition }}"
-          class="weather-icon"
-        />
-        {% endif %}
+        {% set icon_map = {"clear": "☀", "clouds": "☁", "rain": "🌧", "drizzle": "🌦", "snow": "❄", "fog": "🌫", "thunderstorm": "⛈"} %}
+        <span class="weather-icon-glyph">{{ icon_map.get(weather.icon, "◌") }}</span>
         <div class="weather-condition-badge">{{ weather.condition }}</div>
       </div>
     </div>

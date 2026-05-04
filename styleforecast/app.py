@@ -60,7 +60,7 @@ def weather_lookup():
 
     try:
         data = fetch_weather(query)
-    except (ValueError, RuntimeError) as e:
+    except RuntimeError as e:
         flash(str(e), "error")
         return redirect(url_for("index"))
 

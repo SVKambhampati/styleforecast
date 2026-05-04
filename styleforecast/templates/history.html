@@ -27,9 +27,8 @@
         {% for log in logs %}
         <div class="log-entry">
           <div class="log-entry-left">
-            {% if log.icon %}
-            <img src="https://openweathermap.org/img/wn/{{ log.icon }}.png" alt="{{ log.condition }}" class="log-icon" />
-            {% endif %}
+            {% set icon_map = {"clear": "☀", "clouds": "☁", "rain": "🌧", "drizzle": "🌦", "snow": "❄", "fog": "🌫", "thunderstorm": "⛈"} %}
+            <span class="log-icon-glyph">{{ icon_map.get(log.icon, "◌") }}</span>
             <div class="log-details">
               <span class="log-city">{{ log.city }}</span>
               <span class="log-desc">{{ log.description }}</span>

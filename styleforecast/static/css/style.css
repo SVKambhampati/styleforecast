@@ -303,6 +303,8 @@ button { cursor: pointer; font-family: inherit; }
 
 .weather-icon-row { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
 .weather-icon { width: 48px; height: 48px; object-fit: contain; }
+.weather-icon-glyph { font-size: 40px; line-height: 1; }
+.log-icon-glyph { font-size: 24px; line-height: 1; flex-shrink: 0; width: 36px; text-align: center; }
 .weather-condition-badge {
   font-family: var(--ff-mono);
   font-size: 10px;
