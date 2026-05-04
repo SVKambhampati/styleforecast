@@ -4,7 +4,7 @@
 {% block content %}
 <div class="dashboard">
 
-  <!-- ── Left column ─────────────────────────────────── -->
+  <!-- ── Left sidebar ──────────────────────────────────────── -->
   <aside class="dashboard-sidebar">
 
     <div class="weather-search-block">
@@ -58,6 +58,18 @@
         <span class="weather-icon-glyph">{{ icon_map.get(weather.icon, "◌") }}</span>
         <div class="weather-condition-badge">{{ weather.condition }}</div>
       </div>
+
+      <!-- Dress advice -->
+      <div class="dress-advice">
+        {% if weather.rain_chance > 50 %}☂ Bring an umbrella today.
+        {% elif weather.temp_c < 5 %}🧥 Bundle up — it's freezing.
+        {% elif weather.temp_c < 12 %}🧣 Layer up, it's chilly.
+        {% elif weather.temp_c < 18 %}🍂 A light jacket should do it.
+        {% elif weather.temp_c < 24 %}🌤 Perfect weather for a smart look.
+        {% elif weather.temp_c < 30 %}🌞 Dress light today.
+        {% else %}🥵 Keep it minimal — it's hot.
+        {% endif %}
+      </div>
     </div>
     {% else %}
     <div class="weather-empty">
@@ -66,20 +78,38 @@
     </div>
     {% endif %}
 
-    <div class="sidebar-links">
-      <a href="{{ url_for('wardrobe') }}" class="sidebar-action-link">Manage Wardrobe →</a>
-      <a href="{{ url_for('favorites') }}" class="sidebar-action-link">View Favorites →</a>
+    <!-- Quick action cards -->
+    <div class="quick-actions">
+      <a href="{{ url_for('wardrobe') }}" class="quick-action-card">
+        <span class="qa-icon">👔</span>
+        <div class="qa-text">
+          <span class="qa-title">Wardrobe</span>
+          <span class="qa-sub">Manage items</span>
+        </div>
+        <span class="qa-arrow">→</span>
+      </a>
+      <a href="{{ url_for('favorites') }}" class="quick-action-card">
+        <span class="qa-icon">♥</span>
+        <div class="qa-text">
+          <span class="qa-title">Favorites</span>
+          <span class="qa-sub">Saved outfits</span>
+        </div>
+        <span class="qa-arrow">→</span>
+      </a>
     </div>
 
   </aside>
 
-  <!-- ── Main content ────────────────────────────────── -->
+  <!-- ── Main content ───────────────────────────────────────── -->
   <section class="dashboard-main">
 
     <div class="section-header">
       <div>
         <p class="greeting-line" id="greetingLine"></p>
-        <h1 class="section-title">Today's Outfit<br><em>Recommendations</em></h1>
+        <h1 class="section-title">Today's <em>Outfits</em></h1>
+        {% if weather and recommendations %}
+        <p class="section-sub">{{ recommendations | length }} recommendation{{ 's' if recommendations | length != 1 else '' }} for {{ weather.temp_c }}°C, {{ weather.description | lower }}</p>
+        {% endif %}
       </div>
       {% if weather %}
       <button class="btn btn--ghost" id="refreshBtn">Refresh</button>
@@ -90,7 +120,7 @@
     <div class="empty-state">
       <div class="empty-state-glyph">☁</div>
       <h2>No weather data yet</h2>
-      <p>Search for your city to get personalized outfit recommendations based on today's conditions.</p>
+      <p>Search for your city on the left to get outfit recommendations based on today's conditions.</p>
     </div>
 
     {% elif not recommendations %}
@@ -98,25 +128,36 @@
       <div class="empty-state-glyph">✦</div>
       <h2>Your wardrobe is empty</h2>
       <p>Add clothing items to your wardrobe to start receiving outfit recommendations.</p>
-      <a href="{{ url_for('wardrobe') }}" class="btn btn--accent">Add Items</a>
+      <a href="{{ url_for('wardrobe') }}" class="btn btn--accent" style="margin-top:8px;">Add Items →</a>
     </div>
 
     {% else %}
     <div class="outfit-grid" id="outfitGrid">
       {% for rec in recommendations %}
       <article class="outfit-card" data-score="{{ rec.score }}" data-item-ids="{{ rec.item_ids | join(',') }}">
-        <div class="outfit-card-header">
-          <span class="outfit-label">{{ rec.label }}</span>
-          <span class="outfit-score">
-            <span class="score-bar" style="--score: {{ rec.score }}"></span>
-            {{ rec.score }}
-          </span>
+
+        <div class="outfit-card-top">
+          <span class="outfit-rank">{{ '%02d' | format(loop.index) }}</span>
+          <div class="outfit-card-header">
+            <span class="outfit-label">{{ rec.label }}</span>
+            <span class="outfit-score">
+              <span class="score-bar" style="--score: {{ rec.score }}"></span>
+              {{ rec.score }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Color palette -->
+        <div class="outfit-palette">
+          {% for item in rec.pieces %}
+          <span class="palette-dot" style="background:{{ item.color | lower }};" title="{{ item.name }}"></span>
+          {% endfor %}
+          <span class="palette-label">{{ rec.pieces | map(attribute='color') | map('title') | join(' · ') }}</span>
         </div>
 
         <div class="outfit-items">
           {% for item in rec.pieces %}
           <div class="outfit-item-chip">
-            <span class="chip-dot" style="background: {{ item.color | lower }};"></span>
             <span class="chip-cat">{{ item.category }}</span>
             <span class="chip-name">{{ item.name }}</span>
           </div>

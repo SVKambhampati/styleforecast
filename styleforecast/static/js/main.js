@@ -420,10 +420,16 @@ function renderOutfits(outfits) {
   outfits.forEach((rec, i) => {
     const card = document.createElement('article');
     card.className = 'outfit-card';
+    if (i === 0) card.style.borderLeft = '4px solid var(--c-accent)';
+
+    const rank = String(i + 1).padStart(2, '0');
+
+    const paletteDots = (rec.pieces || []).map(it =>
+      `<span class="palette-dot" style="background:${it.color.toLowerCase()};" title="${it.name}"></span>`).join('');
+    const paletteLabel = (rec.pieces || []).map(it => it.color).join(' · ');
 
     const chips = (rec.pieces || []).map(it => `
       <div class="outfit-item-chip">
-        <span class="chip-dot" style="background:${it.color.toLowerCase()};"></span>
         <span class="chip-cat">${it.category}</span>
         <span class="chip-name">${it.name}</span>
       </div>`).join('');
@@ -432,13 +438,17 @@ function renderOutfits(outfits) {
       `<button class="star" data-val="${n+1}">★</button>`).join('');
 
     card.innerHTML = `
-      <div class="outfit-card-header">
-        <span class="outfit-label">${rec.label}</span>
-        <span class="outfit-score">
-          <span class="score-bar" style="--score:${rec.score}"></span>
-          ${rec.score}
-        </span>
+      <div class="outfit-card-top">
+        <span class="outfit-rank">${rank}</span>
+        <div class="outfit-card-header">
+          <span class="outfit-label">${rec.label}</span>
+          <span class="outfit-score">
+            <span class="score-bar" style="--score:${rec.score}"></span>
+            ${rec.score}
+          </span>
+        </div>
       </div>
+      <div class="outfit-palette">${paletteDots}<span class="palette-label">${paletteLabel}</span></div>
       <div class="outfit-items">${chips}</div>
       <p class="outfit-reason">${rec.reason}</p>
       <div class="outfit-actions">
@@ -450,7 +460,6 @@ function renderOutfits(outfits) {
           data-reason="${rec.reason}">♡ Save</button>
       </div>`;
 
-    if (i === 0) card.style.borderTop = '3px solid var(--c-accent)';
     outfitGrid.appendChild(card);
   });
   bindStarRatings(outfitGrid);
