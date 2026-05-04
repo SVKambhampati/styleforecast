@@ -47,6 +47,11 @@ def _geocode(query: str) -> tuple[float, float, str]:
     return r["latitude"], r["longitude"], display
 
 
+def fetch_weather_by_coords(lat: float, lon: float, display_name: str = "My Location") -> dict:
+    """Fetch weather directly from coordinates — no geocoding needed."""
+    return _get_weather_data(lat, lon, display_name, query=display_name)
+
+
 def fetch_weather(query: str) -> dict:
     """
     Fetch current weather for a city name or ZIP code via Open-Meteo.
@@ -55,6 +60,10 @@ def fetch_weather(query: str) -> dict:
     """
     lat, lon, city_name = _geocode(query.strip())
 
+    return _get_weather_data(lat, lon, city_name, query=query.strip())
+
+
+def _get_weather_data(lat: float, lon: float, city_name: str, query: str = "") -> dict:
     params = {
         "latitude": lat,
         "longitude": lon,
@@ -98,7 +107,7 @@ def fetch_weather(query: str) -> dict:
 
     return {
         "city": city_name,
-        "query": query.strip(),
+        "query": query or city_name,
         "temp_c": round(temp_c, 1),
         "temp_f": temp_f,
         "condition": condition_label.split()[0],   # short form: "Rain", "Clear", etc.

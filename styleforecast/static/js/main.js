@@ -4,40 +4,52 @@
 // Geolocation
 // ============================================================
 
-async function detectLocation() {
+async function getCoords() {
   return new Promise((resolve, reject) => {
     if (!('geolocation' in navigator)) { reject(new Error('not supported')); return; }
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      try {
-        const { latitude: lat, longitude: lon } = pos.coords;
-        // zoom=10 returns city-level detail; addressdetails gives structured fields
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10&addressdetails=1`,
-          { headers: { 'Accept-Language': 'en' } }
-        );
-        const data = await res.json();
-        const addr = data.address || {};
-        // Only use proper city/town/village — never county, as Open-Meteo can't resolve it
-        const city = addr.city || addr.town || addr.village || addr.municipality || addr.hamlet || '';
-        const country = addr.country_code?.toUpperCase() || '';
-        resolve(city ? `${city}, ${country}` : '');
-      } catch (e) { reject(e); }
-    }, reject, { timeout: 8000 });
+    navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000 });
   });
 }
 
-async function runLocateBtn(btn, inputEl, onSuccess) {
+async function getDisplayName(lat, lon) {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10&addressdetails=1`,
+      { headers: { 'Accept-Language': 'en' } }
+    );
+    const data = await res.json();
+    const addr = data.address || {};
+    const city = addr.city || addr.town || addr.village || addr.municipality || addr.hamlet || '';
+    const country = addr.country_code?.toUpperCase() || '';
+    return city ? `${city}, ${country}` : 'My Location';
+  } catch { return 'My Location'; }
+}
+
+function submitCoords(lat, lon, displayName) {
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/weather/locate';
+  [['lat', lat], ['lon', lon], ['display_name', displayName]].forEach(([name, val]) => {
+    const inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = name; inp.value = val;
+    form.appendChild(inp);
+  });
+  document.body.appendChild(form);
+  form.submit();
+}
+
+async function runLocateBtn(btn, onSuccess) {
   const orig = btn.innerHTML;
   btn.innerHTML = '…';
   btn.disabled = true;
   try {
-    const city = await detectLocation();
-    if (city) { inputEl.value = city; onSuccess(city); }
-    else showToast('Could not determine city name', 'error');
+    const pos = await getCoords();
+    const { latitude: lat, longitude: lon } = pos.coords;
+    const displayName = await getDisplayName(lat, lon);
+    onSuccess(lat, lon, displayName);
   } catch (e) {
     if (e.code === 1) showToast('Location permission denied', 'error');
     else showToast('Could not detect location', 'error');
-  } finally {
     btn.innerHTML = orig;
     btn.disabled = false;
   }
@@ -128,11 +140,15 @@ document.querySelectorAll('.style-card').forEach(card => {
 
 // Onboarding locate button
 let obLocationDetected = false;
+let obDetectedCoords = null;
 document.getElementById('obLocateBtn')?.addEventListener('click', async function () {
   const hint = document.getElementById('obLocationHint');
-  await runLocateBtn(this, document.getElementById('obCity'), (city) => {
+  await runLocateBtn(this, (lat, lon, displayName) => {
     obLocationDetected = true;
-    if (hint) { hint.textContent = `📍 Using detected location: ${city}`; hint.style.color = 'var(--c-olive)'; }
+    obDetectedCoords = { lat, lon, displayName };
+    const cityInput = document.getElementById('obCity');
+    if (cityInput) cityInput.value = displayName;
+    if (hint) { hint.textContent = `📍 Location detected: ${displayName}`; hint.style.color = 'var(--c-olive)'; }
   });
 });
 
@@ -154,13 +170,19 @@ if (obFinish) {
     hideOnboarding();
     applyProfile();
 
-    // Auto-search the city
+    // If location was detected via GPS, POST coords directly (no city-name geocoding)
+    if (obLocationDetected && obDetectedCoords) {
+      submitCoords(obDetectedCoords.lat, obDetectedCoords.lon, obDetectedCoords.displayName);
+      return;
+    }
+
+    // Otherwise auto-search typed city
     if (city) {
       const cityInput = document.querySelector('.city-input');
       if (cityInput) {
         cityInput.value = city;
         cityInput.closest('form')?.submit();
-        return; // page will reload
+        return;
       }
     }
 
@@ -338,14 +360,12 @@ document.getElementById('tourSkip')?.addEventListener('click', endTour);
 // ============================================================
 
 document.getElementById('dashLocateBtn')?.addEventListener('click', async function () {
-  const cityInput = document.querySelector('.city-input');
-  if (!cityInput) return;
-  await runLocateBtn(this, cityInput, (city) => {
+  await runLocateBtn(this, (lat, lon, displayName) => {
     const p = getProfile() || {};
-    p.defaultCity = city;
+    p.defaultCity = displayName;
     p.useGeolocation = true;
     saveProfile(p);
-    cityInput.closest('form')?.submit();
+    submitCoords(lat, lon, displayName);
   });
 });
 
@@ -573,19 +593,23 @@ document.querySelectorAll('.flash').forEach(el => {
     const hasWeather = document.querySelector('.weather-panel');
     const hasError   = document.querySelector('.flash--error');
 
-    // Never auto-submit when an error is already showing — avoids reload loops
+    // If there's an error showing, clear the useGeolocation flag so we
+    // don't keep retrying a bad lookup on every reload
+    if (hasError && profile.useGeolocation) {
+      profile.useGeolocation = false;
+      saveProfile(profile);
+    }
+
     if (cityInput && !hasWeather && !hasError) {
       if (profile.useGeolocation) {
-        detectLocation().then(city => {
-          if (city) {
-            const p = getProfile() || {};
-            p.defaultCity = city;
-            saveProfile(p);
-            cityInput.value = city;
-            cityInput.closest('form')?.submit();
-          } else {
-            fallbackCity(cityInput, profile.defaultCity);
-          }
+        // POST coords directly — no city-name reverse-geocoding in the critical path
+        getCoords().then(async pos => {
+          const { latitude: lat, longitude: lon } = pos.coords;
+          const displayName = await getDisplayName(lat, lon);
+          const p = getProfile() || {};
+          p.defaultCity = displayName;
+          saveProfile(p);
+          submitCoords(lat, lon, displayName);
         }).catch(() => fallbackCity(cityInput, profile.defaultCity));
       } else if (profile.defaultCity) {
         fallbackCity(cityInput, profile.defaultCity);

@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from sqlalchemy import select, desc
 
 from models import db, WardrobeItem, WeatherLog, OutfitRating, FavoriteOutfit
-from weather import fetch_weather
+from weather import fetch_weather, fetch_weather_by_coords
 from recommend import generate_recommendations
 
 load_dotenv()
@@ -51,6 +51,29 @@ def index():
         recommendations = raw
 
     return render_template("index.html", weather=weather, recommendations=recommendations)
+
+
+@app.route("/weather/locate", methods=["POST"])
+def weather_locate():
+    """Accept lat/lon from browser geolocation — no city-name geocoding needed."""
+    try:
+        lat = float(request.form["lat"])
+        lon = float(request.form["lon"])
+        display_name = request.form.get("display_name", "My Location").strip() or "My Location"
+    except (KeyError, ValueError):
+        flash("Invalid location data.", "error")
+        return redirect(url_for("index"))
+
+    try:
+        data = fetch_weather_by_coords(lat, lon, display_name)
+    except RuntimeError as e:
+        flash(str(e), "error")
+        return redirect(url_for("index"))
+
+    log = WeatherLog(**data)
+    db.session.add(log)
+    db.session.commit()
+    return redirect(url_for("index"))
 
 
 @app.route("/weather", methods=["POST"])
