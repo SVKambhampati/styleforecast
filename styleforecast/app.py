@@ -1,19 +1,30 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from dotenv import load_dotenv
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, func
 
 from models import db, WardrobeItem, WeatherLog, OutfitRating, FavoriteOutfit
-from weather import fetch_weather, fetch_weather_by_coords
+from weather import fetch_weather, fetch_weather_by_coords, fetch_forecast
 from recommend import generate_recommendations
 
 load_dotenv()
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
-import os as _os
-_db_path = "/tmp/styleforecast.db" if _os.environ.get("VERCEL") else None
-app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{_db_path}" if _db_path else "sqlite:///styleforecast.db"
+
+# ── Database URI ────────────────────────────────────────────────────────────
+# Priority: DATABASE_URL env var (Neon/Postgres) → /tmp SQLite on Vercel → local SQLite
+_db_url = os.environ.get("DATABASE_URL", "")
+if _db_url.startswith("postgres://"):
+    _db_url = _db_url.replace("postgres://", "postgresql://", 1)
+
+if _db_url:
+    app.config["SQLALCHEMY_DATABASE_URI"] = _db_url
+elif os.environ.get("VERCEL"):
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////tmp/styleforecast.db"
+else:
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///styleforecast.db"
+
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
@@ -32,6 +43,35 @@ def _latest_weather_log():
     ).scalars().first()
 
 
+def _wardrobe_stats(items):
+    by_cat = {}
+    for item in items:
+        by_cat.setdefault(item.category, []).append(item)
+
+    expected = [("top", "Tops"), ("bottom", "Bottoms"), ("outerwear", "Outerwear"),
+                ("shoes", "Shoes"), ("accessory", "Accessories")]
+    gaps = [label for key, label in expected if key not in by_cat]
+
+    # Most worn: items that appear in highest-rated outfits
+    ratings = db.session.execute(select(OutfitRating)).scalars().all()
+    counts = {}
+    for r in ratings:
+        weight = r.rating  # higher ratings = more weight
+        for iid in r.item_id_list():
+            counts[iid] = counts.get(iid, 0) + weight
+
+    top_ids = sorted(counts, key=counts.get, reverse=True)[:3]
+    top_items = [next((i for i in items if i.id == iid), None) for iid in top_ids]
+    top_items = [i for i in top_items if i]
+
+    return {
+        "total": len(items),
+        "by_cat": {k: len(v) for k, v in by_cat.items()},
+        "gaps": gaps,
+        "top_items": top_items,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -44,8 +84,8 @@ def index():
     if weather:
         wardrobe = db.session.execute(select(WardrobeItem)).scalars().all()
         ratings  = db.session.execute(select(OutfitRating)).scalars().all()
-        raw = generate_recommendations(list(wardrobe), weather, list(ratings), max_results=3)
-        labels = ["Best Match", "Casual Option", "Weather-Safe"]
+        raw = generate_recommendations(list(wardrobe), weather, list(ratings), max_results=5)
+        labels = ["Best Match", "Casual Option", "Weather-Safe", "Smart Casual", "Evening Look"]
         for i, r in enumerate(raw):
             r["label"] = labels[i] if i < len(labels) else f"Option {i+1}"
         recommendations = raw
@@ -55,7 +95,6 @@ def index():
 
 @app.route("/weather/locate", methods=["POST"])
 def weather_locate():
-    """Accept lat/lon from browser geolocation — no city-name geocoding needed."""
     try:
         lat = float(request.form["lat"])
         lon = float(request.form["lon"])
@@ -92,7 +131,6 @@ def weather_lookup():
     log = WeatherLog(**data)
     db.session.add(log)
     db.session.commit()
-
     return redirect(url_for("index"))
 
 
@@ -104,7 +142,8 @@ def wardrobe():
     by_category = {}
     for item in items:
         by_category.setdefault(item.category, []).append(item)
-    return render_template("wardrobe.html", items=items, by_category=by_category)
+    stats = _wardrobe_stats(list(items))
+    return render_template("wardrobe.html", items=items, by_category=by_category, stats=stats)
 
 
 @app.route("/wardrobe/add", methods=["POST"])
@@ -114,6 +153,7 @@ def wardrobe_add():
         name=request.form["name"].strip(),
         category=request.form["category"],
         color=request.form["color"].strip(),
+        color_hex=request.form.get("color_hex", "").strip(),
         warmth=request.form["warmth"],
         formality=request.form["formality"],
         weather_tags=",".join(tags),
@@ -135,6 +175,7 @@ def wardrobe_edit(item_id):
     item.name         = request.form["name"].strip()
     item.category     = request.form["category"]
     item.color        = request.form["color"].strip()
+    item.color_hex    = request.form.get("color_hex", item.color_hex or "").strip()
     item.warmth       = request.form["warmth"]
     item.formality    = request.form["formality"]
     item.weather_tags = ",".join(tags)
@@ -164,9 +205,9 @@ def recommend():
 
     wardrobe = db.session.execute(select(WardrobeItem)).scalars().all()
     ratings  = db.session.execute(select(OutfitRating)).scalars().all()
-    results  = generate_recommendations(list(wardrobe), weather_log.to_dict(), list(ratings), max_results=3)
+    results  = generate_recommendations(list(wardrobe), weather_log.to_dict(), list(ratings), max_results=5)
 
-    labels = ["Best Match", "Casual Option", "Weather-Safe"]
+    labels = ["Best Match", "Casual Option", "Weather-Safe", "Smart Casual", "Evening Look"]
     output = []
     for i, r in enumerate(results):
         output.append({
@@ -177,6 +218,35 @@ def recommend():
             "pieces":   [it.to_dict() for it in r["pieces"]],
         })
     return jsonify(output)
+
+
+@app.route("/planner")
+def planner():
+    weather_log = _latest_weather_log()
+    forecast = []
+    if weather_log and weather_log.lat and weather_log.lon:
+        try:
+            forecast = fetch_forecast(weather_log.lat, weather_log.lon)
+        except Exception:
+            pass
+
+    wardrobe = db.session.execute(select(WardrobeItem)).scalars().all()
+    ratings  = db.session.execute(select(OutfitRating)).scalars().all()
+
+    # Generate a top outfit for each forecast day
+    planner_days = []
+    for day in forecast:
+        day_weather = {
+            "temp_c": (day["temp_max"] + day["temp_min"]) / 2,
+            "rain_chance": day["rain_chance"],
+            "wind_speed": day["wind_speed"],
+            "uv_index": day["uv_index"],
+        }
+        recs = generate_recommendations(list(wardrobe), day_weather, list(ratings), max_results=1)
+        planner_days.append({"day": day, "outfit": recs[0] if recs else None})
+
+    return render_template("planner.html", planner_days=planner_days,
+                           city=weather_log.city if weather_log else None)
 
 
 @app.route("/favorite", methods=["POST"])
@@ -244,15 +314,17 @@ def favorites():
         select(FavoriteOutfit).order_by(desc(FavoriteOutfit.saved_at))
     ).scalars().all()
 
+    weather_log = _latest_weather_log()
+
     resolved = []
     for fav in favs:
         id_list = fav.item_id_list()
         items = db.session.execute(
             select(WardrobeItem).where(WardrobeItem.id.in_(id_list))
         ).scalars().all() if id_list else []
-        resolved.append({"fav": fav, "items": items})
+        resolved.append({"fav": fav, "items": list(items)})
 
-    return render_template("favorites.html", favorites=resolved)
+    return render_template("favorites.html", favorites=resolved, weather=weather_log)
 
 
 @app.route("/history")
@@ -262,7 +334,7 @@ def history():
     ).scalars().all()
 
     ratings = db.session.execute(
-        select(OutfitRating).order_by(desc(OutfitRating.rated_at)).limit(10)
+        select(OutfitRating).order_by(desc(OutfitRating.rated_at)).limit(20)
     ).scalars().all()
 
     rated_items = []
@@ -271,7 +343,7 @@ def history():
         items = db.session.execute(
             select(WardrobeItem).where(WardrobeItem.id.in_(id_list))
         ).scalars().all() if id_list else []
-        rated_items.append({"rating": r, "items": items})
+        rated_items.append({"rating": r, "items": list(items)})
 
     return render_template("history.html", logs=logs, rated_items=rated_items)
 

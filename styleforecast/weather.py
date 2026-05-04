@@ -52,6 +52,44 @@ def fetch_weather_by_coords(lat: float, lon: float, display_name: str = "My Loca
     return _get_weather_data(lat, lon, display_name, query=display_name)
 
 
+def fetch_forecast(lat: float, lon: float) -> list:
+    """Return a 5-day daily forecast list from Open-Meteo."""
+    params = {
+        "latitude": lat,
+        "longitude": lon,
+        "daily": [
+            "weather_code",
+            "temperature_2m_max",
+            "temperature_2m_min",
+            "precipitation_probability_max",
+            "wind_speed_10m_max",
+            "uv_index_max",
+        ],
+        "forecast_days": 5,
+        "timezone": "auto",
+    }
+    resp = requests.get(FORECAST_URL, params=params, timeout=8)
+    resp.raise_for_status()
+    data = resp.json()
+    daily = data["daily"]
+
+    days = []
+    for i in range(len(daily["time"])):
+        wmo = daily["weather_code"][i]
+        condition_label, icon = _WMO.get(wmo, ("Unknown", "clear"))
+        days.append({
+            "date": daily["time"][i],
+            "temp_max": round(daily["temperature_2m_max"][i], 1),
+            "temp_min": round(daily["temperature_2m_min"][i], 1),
+            "rain_chance": daily["precipitation_probability_max"][i] or 0,
+            "wind_speed": round(daily["wind_speed_10m_max"][i], 1),
+            "uv_index": round((daily["uv_index_max"][i] or 0), 1),
+            "condition": condition_label,
+            "icon": icon,
+        })
+    return days
+
+
 def fetch_weather(query: str) -> dict:
     """
     Fetch current weather for a city name or ZIP code via Open-Meteo.
@@ -108,6 +146,8 @@ def _get_weather_data(lat: float, lon: float, city_name: str, query: str = "") -
     return {
         "city": city_name,
         "query": query or city_name,
+        "lat": round(lat, 6),
+        "lon": round(lon, 6),
         "temp_c": round(temp_c, 1),
         "temp_f": temp_f,
         "condition": condition_label.split()[0],   # short form: "Rain", "Clear", etc.

@@ -25,6 +25,7 @@
         <input type="hidden" name="formality"    id="pFormality" />
         <input type="hidden" name="season"       id="pSeason" />
         <input type="hidden" name="weather_tags" id="pTags" />
+        <input type="hidden" name="color_hex"    id="pColorHex" />
       </form>
 
       <!-- Picker header -->
@@ -119,6 +120,33 @@
     </div>
   </div>
 
+  <!-- ── Stats Strip ───────────────────────────────────── -->
+  {% if items %}
+  <div class="wardrobe-stats">
+    {% set cat_icons = {'top':'👔','bottom':'👖','outerwear':'🧥','shoes':'👟','accessory':'🧣'} %}
+    {% for cat_key in ['top','bottom','outerwear','shoes','accessory'] %}
+    <div class="wstat {% if cat_key not in by_category %}wstat--gap{% endif %}">
+      <span class="wstat-icon">{{ cat_icons[cat_key] }}</span>
+      <span class="wstat-count">{{ by_category.get(cat_key, []) | length }}</span>
+      <span class="wstat-label">{{ cat_key.title() }}s</span>
+    </div>
+    {% endfor %}
+    {% if stats.gaps %}
+    <div class="wstat-gap-hint">Missing: {{ stats.gaps | join(', ') }}</div>
+    {% endif %}
+    {% if stats.top_items %}
+    <div class="wstat-favorites">
+      <span class="wstat-fav-label">Most worn</span>
+      {% for item in stats.top_items %}
+      <span class="wstat-fav-chip">
+        <span class="chip-dot" style="background:{{ item.display_color() }};"></span>{{ item.name }}
+      </span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
   <!-- ── Wardrobe Grid ───────────────────────────────── -->
   {% if not items %}
   <div class="empty-state empty-state--page">
@@ -136,7 +164,7 @@
       <div class="wardrobe-tiles">
         {% for item in by_category[cat_key] %}
         <div class="wardrobe-tile" id="tile-{{ item.id }}">
-          <div class="tile-color-strip" style="background: {{ item.color | lower }};"></div>
+          <div class="tile-color-strip" style="background: {{ item.display_color() }};"></div>
           <div class="tile-body">
             <div class="tile-header">
               <span class="tile-name">{{ item.name }}</span>

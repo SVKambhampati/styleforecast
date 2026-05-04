@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Planner — StyleForecast{% endblock %}
+
+{% block content %}
+<div class="page-planner">
+
+  <div class="page-header">
+    <div>
+      <p class="label-overline">5-Day Forecast</p>
+      <h1 class="page-title">Outfit <em>Planner</em>{% if city %} · {{ city }}{% endif %}</h1>
+    </div>
+    <a href="{{ url_for('index') }}" class="btn btn--ghost">← Dashboard</a>
+  </div>
+
+  {% if not planner_days %}
+  <div class="empty-state empty-state--page">
+    <div class="empty-state-glyph">📅</div>
+    <h2>No forecast available</h2>
+    <p>Search for your city on the dashboard first, then come back here for a 5-day outfit plan.</p>
+    <a href="{{ url_for('index') }}" class="btn btn--accent" style="margin-top:8px;">Go to Dashboard →</a>
+  </div>
+  {% else %}
+
+  {% set icon_map = {"clear":"☀","clouds":"☁","rain":"🌧","drizzle":"🌦","snow":"❄","fog":"🌫","thunderstorm":"⛈"} %}
+
+  <div class="planner-grid">
+    {% for entry in planner_days %}
+    {% set day = entry.day %}
+    {% set outfit = entry.outfit %}
+    {% set date_parts = day.date.split('-') %}
+    {% set day_names = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}
+    <div class="planner-card {% if loop.first %}planner-card--today{% endif %}">
+
+      <!-- Day header -->
+      <div class="planner-day-header">
+        <div class="planner-day-label">
+          {% if loop.first %}<span class="planner-today-badge">Today</span>{% endif %}
+          <span class="planner-date">{{ day.date[5:] | replace('-', '/') }}</span>
+        </div>
+        <span class="planner-weather-icon">{{ icon_map.get(day.icon, '◌') }}</span>
+      </div>
+
+      <!-- Temp range -->
+      <div class="planner-temps">
+        <span class="planner-temp-max">{{ day.temp_max }}°</span>
+        <span class="planner-temp-min">{{ day.temp_min }}°</span>
+      </div>
+      <div class="planner-condition">{{ day.condition }}</div>
+
+      <!-- Telemetry pills -->
+      <div class="planner-telem">
+        {% if day.rain_chance > 20 %}
+        <span class="planner-pill planner-pill--rain">🌧 {{ day.rain_chance | int }}%</span>
+        {% endif %}
+        {% if day.wind_speed > 7 %}
+        <span class="planner-pill planner-pill--wind">💨 {{ day.wind_speed }}m/s</span>
+        {% endif %}
+        {% if day.uv_index >= 6 %}
+        <span class="planner-pill planner-pill--uv">☀ UV {{ day.uv_index | int }}</span>
+        {% endif %}
+      </div>
+
+      <!-- Outfit suggestion -->
+      <div class="planner-outfit">
+        {% if outfit %}
+        <div class="planner-outfit-palette">
+          {% for item in outfit.pieces %}
+          <span class="palette-dot" style="background:{{ item.display_color() }};" title="{{ item.name }}"></span>
+          {% endfor %}
+        </div>
+        <div class="planner-outfit-items">
+          {% for item in outfit.pieces %}
+          <div class="planner-outfit-row">
+            <span class="chip-cat">{{ item.category }}</span>
+            <span class="chip-name">{{ item.name }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        <p class="planner-score">Match score: <strong>{{ outfit.score }}</strong></p>
+        {% else %}
+        <p class="planner-no-outfit">Add items to your wardrobe to get suggestions.</p>
+        {% endif %}
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if not planner_days[0].outfit %}
+  <div class="planner-cta">
+    <a href="{{ url_for('wardrobe') }}" class="btn btn--accent">Build your wardrobe →</a>
+  </div>
+  {% endif %}
+
+  {% endif %}
+
+</div>
+{% endblock %}

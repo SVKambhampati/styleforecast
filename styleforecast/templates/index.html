@@ -151,7 +151,7 @@
         <!-- Color palette -->
         <div class="outfit-palette">
           {% for item in rec.pieces %}
-          <span class="palette-dot" style="background:{{ item.color | lower }};" title="{{ item.name }}"></span>
+          <span class="palette-dot" style="background:{{ item.display_color() }};" title="{{ item.name }}"></span>
           {% endfor %}
           <span class="palette-label">{{ rec.pieces | map(attribute='color') | map('title') | join(' · ') }}</span>
         </div>

@@ -119,16 +119,30 @@ def season_score(items: list, current_season: str) -> float:
 
 def rating_boost(item_ids: list, ratings: list) -> float:
     """
-    Give a small boost (0–15 pts) for outfits whose items have been
-    positively rated together before.
+    Boost (up to +25) or penalise (down to -15) outfits based on prior ratings.
+    Exact item-set matches count double to reinforce proven combinations.
     """
     item_set = set(item_ids)
-    relevant = [r for r in ratings if item_set & set(r.item_id_list())]
-    if not relevant:
+    if not ratings:
         return 0
-    avg = sum(r.rating for r in relevant) / len(relevant)
-    # map 1–5 → -10 to +15
-    return (avg - 3) * 5
+
+    exact = [r for r in ratings if set(r.item_id_list()) == item_set]
+    partial = [r for r in ratings if item_set & set(r.item_id_list()) and set(r.item_id_list()) != item_set]
+
+    total, weight = 0.0, 0.0
+    for r in exact:
+        total += r.rating * 2
+        weight += 2
+    for r in partial:
+        total += r.rating
+        weight += 1
+
+    if weight == 0:
+        return 0
+
+    avg = total / weight
+    # map 1–5 → -15 to +25
+    return (avg - 3) * 6.25
 
 
 # ---------------------------------------------------------------------------

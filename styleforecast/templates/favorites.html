@@ -17,43 +17,61 @@
     <div class="empty-state-glyph">♡</div>
     <h2>No saved outfits yet</h2>
     <p>Get outfit recommendations on the dashboard and save the ones you love.</p>
-    <a href="{{ url_for('index') }}" class="btn btn--accent">Go to Dashboard</a>
+    <a href="{{ url_for('index') }}" class="btn btn--accent" style="margin-top:8px;">Go to Dashboard →</a>
   </div>
 
   {% else %}
   <div class="favorites-grid">
     {% for entry in favorites %}
+    {% set fav = entry.fav %}
+    {% set items = entry.items %}
     <article class="fav-card">
-      <div class="fav-card-header">
-        <div>
-          <span class="outfit-label">{{ entry.fav.label or 'Saved Outfit' }}</span>
-          <p class="fav-date">Saved {{ entry.fav.saved_at.strftime('%b %d, %Y') }}</p>
-        </div>
-        <div class="fav-score-badge">{{ entry.fav.score }}</div>
-      </div>
 
-      <div class="fav-items">
-        {% for item in entry.items %}
-        <div class="outfit-item-chip">
-          <span class="chip-dot" style="background: {{ item.color | lower }};"></span>
-          <span class="chip-cat">{{ item.category }}</span>
-          <span class="chip-name">{{ item.name }}</span>
-        </div>
+      <!-- Color palette bar -->
+      <div class="fav-palette">
+        {% for item in items %}
+        <span class="fav-palette-swatch" style="background:{{ item.display_color() }};" title="{{ item.name }}"></span>
         {% endfor %}
-        {% if not entry.items %}
-        <p class="fav-missing">Some items have been removed from your wardrobe.</p>
+        {% if not items %}
+        <span class="fav-palette-swatch" style="background:var(--c-border);"></span>
         {% endif %}
       </div>
 
-      {% if entry.fav.reason %}
-      <p class="outfit-reason">{{ entry.fav.reason }}</p>
-      {% endif %}
+      <div class="fav-card-body">
+        <div class="fav-card-header">
+          <div>
+            <span class="outfit-label">{{ fav.label or 'Saved Outfit' }}</span>
+            <p class="fav-date">{{ fav.saved_at.strftime('%b %d, %Y') }}</p>
+          </div>
+          <div class="fav-score-badge">{{ fav.score }}</div>
+        </div>
 
-      <div class="fav-card-footer">
-        <form action="{{ url_for('favorite_delete', fav_id=entry.fav.id) }}" method="POST" onsubmit="return confirm('Remove this outfit from favorites?')">
-          <button type="submit" class="btn btn--ghost btn--sm btn--danger">Remove</button>
-        </form>
+        <div class="fav-items">
+          {% if items %}
+            {% for item in items %}
+            <div class="outfit-item-chip">
+              <span class="chip-dot" style="background:{{ item.display_color() }};border:1px solid rgba(0,0,0,.1);"></span>
+              <span class="chip-cat">{{ item.category }}</span>
+              <span class="chip-name">{{ item.name }}</span>
+            </div>
+            {% endfor %}
+          {% else %}
+            <p class="fav-missing">Some items have been removed from your wardrobe.</p>
+          {% endif %}
+        </div>
+
+        {% if fav.reason %}
+        <p class="outfit-reason">{{ fav.reason }}</p>
+        {% endif %}
+
+        <div class="fav-card-footer">
+          <form action="{{ url_for('favorite_delete', fav_id=fav.id) }}" method="POST"
+                onsubmit="return confirm('Remove this outfit from favorites?')">
+            <button type="submit" class="btn btn--ghost btn--sm btn--danger">Remove</button>
+          </form>
+        </div>
       </div>
+
     </article>
     {% endfor %}
   </div>

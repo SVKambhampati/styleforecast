@@ -218,6 +218,7 @@ document.getElementById('pickerSubmit')?.addEventListener('click', () => {
   document.getElementById('pName').value     = name;
   document.getElementById('pCategory').value = state.categoryKey;
   document.getElementById('pColor').value    = state.color.name.toLowerCase();
+  document.getElementById('pColorHex').value = state.color.hex || '';
   document.getElementById('pWarmth').value   = state.type.warmth;
   document.getElementById('pFormality').value= state.type.formality;
   document.getElementById('pSeason').value   = state.type.season;
