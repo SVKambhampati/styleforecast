@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% block title %}Wardrobe — StyleForecast{% endblock %}
+
+{% block content %}
+<div class="page-wardrobe">
+
+  <div class="page-header">
+    <div>
+      <p class="label-overline">Inventory</p>
+      <h1 class="page-title">Your <em>Wardrobe</em></h1>
+    </div>
+    <button class="btn btn--accent" id="addItemBtn">+ Add Item</button>
+  </div>
+
+  <!-- ── Add Item Drawer ─────────────────────────────── -->
+  <div class="drawer" id="addDrawer">
+    <div class="drawer-inner">
+      <div class="drawer-header">
+        <h2 class="drawer-title">New Item</h2>
+        <button class="drawer-close" id="closeDrawer">×</button>
+      </div>
+      <form action="{{ url_for('wardrobe_add') }}" method="POST" class="item-form">
+        <div class="form-grid">
+          <div class="form-group form-group--wide">
+            <label class="form-label">Item Name</label>
+            <input type="text" name="name" class="form-input" placeholder="e.g. Navy Chino Trousers" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select name="category" class="form-select" required>
+              <option value="">— select —</option>
+              <option value="top">Top</option>
+              <option value="bottom">Bottom</option>
+              <option value="outerwear">Outerwear</option>
+              <option value="shoes">Shoes</option>
+              <option value="accessory">Accessory</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Color</label>
+            <input type="text" name="color" class="form-input" placeholder="e.g. Navy" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Warmth</label>
+            <select name="warmth" class="form-select" required>
+              <option value="">— select —</option>
+              <option value="light">Light</option>
+              <option value="medium">Medium</option>
+              <option value="heavy">Heavy</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Formality</label>
+            <select name="formality" class="form-select" required>
+              <option value="">— select —</option>
+              <option value="casual">Casual</option>
+              <option value="smart casual">Smart Casual</option>
+              <option value="formal">Formal</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Season</label>
+            <select name="season" class="form-select" required>
+              <option value="">— select —</option>
+              <option value="all-season">All-Season</option>
+              <option value="spring">Spring</option>
+              <option value="summer">Summer</option>
+              <option value="fall">Fall</option>
+              <option value="winter">Winter</option>
+            </select>
+          </div>
+
+          <div class="form-group form-group--wide">
+            <label class="form-label">Weather Suitability</label>
+            <div class="checkbox-group">
+              <label class="checkbox-label"><input type="checkbox" name="weather_tags" value="rain" /> Rain</label>
+              <label class="checkbox-label"><input type="checkbox" name="weather_tags" value="cold" /> Cold</label>
+              <label class="checkbox-label"><input type="checkbox" name="weather_tags" value="hot" /> Hot</label>
+              <label class="checkbox-label"><input type="checkbox" name="weather_tags" value="windy" /> Windy</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn--ghost" id="cancelAdd">Cancel</button>
+          <button type="submit" class="btn btn--accent">Add to Wardrobe</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Wardrobe Grid ───────────────────────────────── -->
+  {% if not items %}
+  <div class="empty-state empty-state--page">
+    <div class="empty-state-glyph">✦</div>
+    <h2>No items yet</h2>
+    <p>Add your first clothing item to start building your wardrobe.</p>
+  </div>
+  {% else %}
+
+  {% set categories = [('top','Tops'), ('bottom','Bottoms'), ('outerwear','Outerwear'), ('shoes','Shoes'), ('accessory','Accessories')] %}
+  {% for cat_key, cat_label in categories %}
+    {% if by_category.get(cat_key) %}
+    <section class="wardrobe-section">
+      <h2 class="wardrobe-section-title">{{ cat_label }} <span class="count-badge">{{ by_category[cat_key] | length }}</span></h2>
+      <div class="wardrobe-tiles">
+        {% for item in by_category[cat_key] %}
+        <div class="wardrobe-tile" id="tile-{{ item.id }}">
+          <div class="tile-color-strip" style="background: {{ item.color | lower }};"></div>
+          <div class="tile-body">
+            <div class="tile-header">
+              <span class="tile-name">{{ item.name }}</span>
+              <div class="tile-menu">
+                <button class="tile-menu-btn" onclick="toggleTileMenu({{ item.id }})">⋯</button>
+                <div class="tile-menu-dropdown" id="menu-{{ item.id }}">
+                  <button onclick="openEdit({{ item.id }})" class="tile-menu-item">Edit</button>
+                  <form action="{{ url_for('wardrobe_delete', item_id=item.id) }}" method="POST" onsubmit="return confirm('Remove {{ item.name }}?')">
+                    <button type="submit" class="tile-menu-item tile-menu-item--danger">Delete</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+            <div class="tile-meta">
+              <span class="tile-tag tile-tag--warmth">{{ item.warmth }}</span>
+              <span class="tile-tag tile-tag--formal">{{ item.formality }}</span>
+              <span class="tile-tag tile-tag--season">{{ item.season }}</span>
+            </div>
+            {% if item.weather_tag_list() %}
+            <div class="tile-weather-tags">
+              {% for tag in item.weather_tag_list() %}
+              <span class="tile-tag tile-tag--weather">{{ tag }}</span>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Edit panel (hidden by default) -->
+          <div class="tile-edit-panel" id="edit-{{ item.id }}" style="display:none;">
+            <form action="{{ url_for('wardrobe_edit', item_id=item.id) }}" method="POST" class="item-form item-form--inline">
+              <div class="form-grid form-grid--compact">
+                <div class="form-group form-group--wide">
+                  <label class="form-label">Name</label>
+                  <input type="text" name="name" class="form-input" value="{{ item.name }}" required />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Category</label>
+                  <select name="category" class="form-select">
+                    {% for v in ['top','bottom','outerwear','shoes','accessory'] %}
+                    <option value="{{ v }}" {% if item.category == v %}selected{% endif %}>{{ v.title() }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Color</label>
+                  <input type="text" name="color" class="form-input" value="{{ item.color }}" required />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Warmth</label>
+                  <select name="warmth" class="form-select">
+                    {% for v in ['light','medium','heavy'] %}
+                    <option value="{{ v }}" {% if item.warmth == v %}selected{% endif %}>{{ v.title() }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Formality</label>
+                  <select name="formality" class="form-select">
+                    {% for v in ['casual','smart casual','formal'] %}
+                    <option value="{{ v }}" {% if item.formality == v %}selected{% endif %}>{{ v.title() }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Season</label>
+                  <select name="season" class="form-select">
+                    {% for v in ['all-season','spring','summer','fall','winter'] %}
+                    <option value="{{ v }}" {% if item.season == v %}selected{% endif %}>{{ v.replace('-',' ').title() }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="form-group form-group--wide">
+                  <label class="form-label">Weather Tags</label>
+                  <div class="checkbox-group">
+                    {% for tag in ['rain','cold','hot','windy'] %}
+                    <label class="checkbox-label">
+                      <input type="checkbox" name="weather_tags" value="{{ tag }}"
+                        {% if tag in item.weather_tag_list() %}checked{% endif %} />
+                      {{ tag.title() }}
+                    </label>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+              <div class="form-actions form-actions--compact">
+                <button type="button" class="btn btn--ghost btn--sm" onclick="closeEdit({{ item.id }})">Cancel</button>
+                <button type="submit" class="btn btn--accent btn--sm">Save</button>
+              </div>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+  {% endfor %}
+  {% endif %}
+
+</div>
+{% endblock %}

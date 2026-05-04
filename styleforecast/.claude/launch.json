@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "styleforecast",
+      "runtimeExecutable": "venv/bin/python3",
+      "runtimeArgs": ["app.py"],
+      "port": 5050,
+      "env": {
+        "OPENWEATHER_API_KEY": "demo",
+        "SECRET_KEY": "dev"
+      }
+    }
+  ]
+}

@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — StyleForecast{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+
+  <!-- ── Left column ─────────────────────────────────── -->
+  <aside class="dashboard-sidebar">
+
+    <div class="weather-search-block">
+      <p class="label-overline">Location</p>
+      <form action="{{ url_for('weather_lookup') }}" method="POST" class="city-form">
+        <div class="input-row">
+          <input
+            type="text"
+            name="city"
+            placeholder="City or ZIP code"
+            class="city-input"
+            value="{{ weather.city if weather else '' }}"
+            autocomplete="off"
+          />
+          <button type="submit" class="btn btn--accent">Go</button>
+        </div>
+      </form>
+    </div>
+
+    {% if weather %}
+    <div class="weather-panel">
+      <div class="weather-city">{{ weather.city }}</div>
+      <div class="weather-temp">
+        <span class="temp-big">{{ weather.temp_c }}°</span>
+        <span class="temp-unit">C</span>
+        <span class="temp-alt">/ {{ weather.temp_f }}°F</span>
+      </div>
+      <div class="weather-condition">{{ weather.description }}</div>
+
+      <div class="telemetry-grid">
+        <div class="telemetry-cell">
+          <span class="telem-label">Rain</span>
+          <span class="telem-value">{{ weather.rain_chance }}%</span>
+        </div>
+        <div class="telemetry-cell">
+          <span class="telem-label">Wind</span>
+          <span class="telem-value">{{ weather.wind_speed }} m/s</span>
+        </div>
+        <div class="telemetry-cell">
+          <span class="telem-label">UV</span>
+          <span class="telem-value">{{ weather.uv_index }}</span>
+        </div>
+        <div class="telemetry-cell">
+          <span class="telem-label">Humidity</span>
+          <span class="telem-value">{{ weather.humidity }}%</span>
+        </div>
+      </div>
+
+      <div class="weather-icon-row">
+        {% if weather.icon %}
+        <img
+          src="https://openweathermap.org/img/wn/{{ weather.icon }}@2x.png"
+          alt="{{ weather.condition }}"
+          class="weather-icon"
+        />
+        {% endif %}
+        <div class="weather-condition-badge">{{ weather.condition }}</div>
+      </div>
+    </div>
+    {% else %}
+    <div class="weather-empty">
+      <div class="weather-empty-icon">◌</div>
+      <p>Enter a location above to see today's weather and get outfit recommendations.</p>
+    </div>
+    {% endif %}
+
+    <div class="sidebar-links">
+      <a href="{{ url_for('wardrobe') }}" class="sidebar-action-link">Manage Wardrobe →</a>
+      <a href="{{ url_for('favorites') }}" class="sidebar-action-link">View Favorites →</a>
+    </div>
+
+  </aside>
+
+  <!-- ── Main content ────────────────────────────────── -->
+  <section class="dashboard-main">
+
+    <div class="section-header">
+      <h1 class="section-title">Today's Outfit<br><em>Recommendations</em></h1>
+      {% if weather %}
+      <button class="btn btn--ghost" id="refreshBtn">Refresh</button>
+      {% endif %}
+    </div>
+
+    {% if not weather %}
+    <div class="empty-state">
+      <div class="empty-state-glyph">☁</div>
+      <h2>No weather data yet</h2>
+      <p>Search for your city to get personalized outfit recommendations based on today's conditions.</p>
+    </div>
+
+    {% elif not recommendations %}
+    <div class="empty-state">
+      <div class="empty-state-glyph">✦</div>
+      <h2>Your wardrobe is empty</h2>
+      <p>Add clothing items to your wardrobe to start receiving outfit recommendations.</p>
+      <a href="{{ url_for('wardrobe') }}" class="btn btn--accent">Add Items</a>
+    </div>
+
+    {% else %}
+    <div class="outfit-grid" id="outfitGrid">
+      {% for rec in recommendations %}
+      <article class="outfit-card" data-score="{{ rec.score }}" data-item-ids="{{ rec.item_ids | join(',') }}">
+        <div class="outfit-card-header">
+          <span class="outfit-label">{{ rec.label }}</span>
+          <span class="outfit-score">
+            <span class="score-bar" style="--score: {{ rec.score }}"></span>
+            {{ rec.score }}
+          </span>
+        </div>
+
+        <div class="outfit-items">
+          {% for item in rec.pieces %}
+          <div class="outfit-item-chip">
+            <span class="chip-dot" style="background: {{ item.color | lower }};"></span>
+            <span class="chip-cat">{{ item.category }}</span>
+            <span class="chip-name">{{ item.name }}</span>
+          </div>
+          {% endfor %}
+        </div>
+
+        <p class="outfit-reason">{{ rec.reason }}</p>
+
+        <div class="outfit-actions">
+          <div class="star-rating" data-ids="{{ rec.item_ids | join(',') }}">
+            {% for n in range(1, 6) %}
+            <button class="star" data-val="{{ n }}" title="{{ n }} star{{ 's' if n > 1 else '' }}">★</button>
+            {% endfor %}
+          </div>
+          <button
+            class="btn btn--ghost btn--sm save-fav"
+            data-ids="{{ rec.item_ids | join(',') }}"
+            data-label="{{ rec.label }}"
+            data-score="{{ rec.score }}"
+            data-reason="{{ rec.reason }}"
+          >♡ Save</button>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+  </section>
+
+</div>
+{% endblock %}

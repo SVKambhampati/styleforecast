@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}History — StyleForecast{% endblock %}
+
+{% block content %}
+<div class="page-history">
+
+  <div class="page-header">
+    <div>
+      <p class="label-overline">Lookback</p>
+      <h1 class="page-title">Weather &amp; Outfit <em>History</em></h1>
+    </div>
+    <a href="{{ url_for('index') }}" class="btn btn--ghost">← Dashboard</a>
+  </div>
+
+  <div class="history-layout">
+
+    <!-- ── Weather Logs ─────────────────────────────── -->
+    <section class="history-section">
+      <h2 class="history-section-title">Recent Weather Lookups</h2>
+
+      {% if not logs %}
+      <div class="empty-state empty-state--inline">
+        <p>No weather searches yet.</p>
+      </div>
+      {% else %}
+      <div class="log-list">
+        {% for log in logs %}
+        <div class="log-entry">
+          <div class="log-entry-left">
+            {% if log.icon %}
+            <img src="https://openweathermap.org/img/wn/{{ log.icon }}.png" alt="{{ log.condition }}" class="log-icon" />
+            {% endif %}
+            <div class="log-details">
+              <span class="log-city">{{ log.city }}</span>
+              <span class="log-desc">{{ log.description }}</span>
+            </div>
+          </div>
+          <div class="log-entry-right">
+            <div class="log-temps">
+              <span class="log-temp-main">{{ log.temp_c }}°C</span>
+              <span class="log-temp-alt">{{ log.temp_f }}°F</span>
+            </div>
+            <div class="log-telemetry">
+              <span>Rain {{ log.rain_chance }}%</span>
+              <span>Wind {{ log.wind_speed }} m/s</span>
+              <span>UV {{ log.uv_index }}</span>
+            </div>
+            <span class="log-time">{{ log.fetched_at }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+
+    <!-- ── Rated Outfits ─────────────────────────────── -->
+    <section class="history-section">
+      <h2 class="history-section-title">Recent Ratings</h2>
+
+      {% if not rated_items %}
+      <div class="empty-state empty-state--inline">
+        <p>No outfit ratings yet. Rate outfits from the dashboard.</p>
+      </div>
+      {% else %}
+      <div class="ratings-list">
+        {% for entry in rated_items %}
+        <div class="rating-entry">
+          <div class="rating-stars">
+            {% for n in range(1, 6) %}
+            <span class="rating-star {% if n <= entry.rating.rating %}rating-star--filled{% endif %}">★</span>
+            {% endfor %}
+          </div>
+          <div class="rating-items">
+            {% for item in entry.items %}
+            <span class="outfit-item-chip outfit-item-chip--sm">
+              <span class="chip-dot" style="background: {{ item.color | lower }};"></span>
+              <span class="chip-name">{{ item.name }}</span>
+            </span>
+            {% endfor %}
+            {% if not entry.items %}
+            <span class="fav-missing">Items removed</span>
+            {% endif %}
+          </div>
+          <span class="rating-date">{{ entry.rating.rated_at.strftime('%b %d') }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+
+  </div>
+</div>
+{% endblock %}
