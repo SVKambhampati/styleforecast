@@ -1,6 +1,46 @@
 /* StyleForecast — main.js */
 
 // ============================================================
+// Geolocation
+// ============================================================
+
+async function detectLocation() {
+  return new Promise((resolve, reject) => {
+    if (!('geolocation' in navigator)) { reject(new Error('not supported')); return; }
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try {
+        const { latitude: lat, longitude: lon } = pos.coords;
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
+          { headers: { 'Accept-Language': 'en' } }
+        );
+        const data = await res.json();
+        const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county || '';
+        const country = data.address?.country_code?.toUpperCase() || '';
+        resolve(city ? `${city}, ${country}` : '');
+      } catch (e) { reject(e); }
+    }, reject, { timeout: 8000 });
+  });
+}
+
+async function runLocateBtn(btn, inputEl, onSuccess) {
+  const orig = btn.innerHTML;
+  btn.innerHTML = '…';
+  btn.disabled = true;
+  try {
+    const city = await detectLocation();
+    if (city) { inputEl.value = city; onSuccess(city); }
+    else showToast('Could not determine city name', 'error');
+  } catch (e) {
+    if (e.code === 1) showToast('Location permission denied', 'error');
+    else showToast('Could not detect location', 'error');
+  } finally {
+    btn.innerHTML = orig;
+    btn.disabled = false;
+  }
+}
+
+// ============================================================
 // Profile (localStorage)
 // ============================================================
 
@@ -83,6 +123,16 @@ document.querySelectorAll('.style-card').forEach(card => {
   });
 });
 
+// Onboarding locate button
+let obLocationDetected = false;
+document.getElementById('obLocateBtn')?.addEventListener('click', async function () {
+  const hint = document.getElementById('obLocationHint');
+  await runLocateBtn(this, document.getElementById('obCity'), (city) => {
+    obLocationDetected = true;
+    if (hint) { hint.textContent = `📍 Using detected location: ${city}`; hint.style.color = 'var(--c-olive)'; }
+  });
+});
+
 // Finish onboarding
 const obFinish = document.getElementById('obFinish');
 if (obFinish) {
@@ -95,6 +145,7 @@ if (obFinish) {
       defaultCity: city,
       style: selectedStyle || 'casual',
       onboardingDone: true,
+      useGeolocation: obLocationDetected,
     });
 
     hideOnboarding();
@@ -278,6 +329,22 @@ document.getElementById('tourNext')?.addEventListener('click', () => {
 });
 
 document.getElementById('tourSkip')?.addEventListener('click', endTour);
+
+// ============================================================
+// Dashboard locate button
+// ============================================================
+
+document.getElementById('dashLocateBtn')?.addEventListener('click', async function () {
+  const cityInput = document.querySelector('.city-input');
+  if (!cityInput) return;
+  await runLocateBtn(this, cityInput, (city) => {
+    const p = getProfile() || {};
+    p.defaultCity = city;
+    p.useGeolocation = true;
+    saveProfile(p);
+    cityInput.closest('form')?.submit();
+  });
+});
 
 // ============================================================
 // Mobile nav
@@ -495,17 +562,36 @@ document.querySelectorAll('.flash').forEach(el => {
   const profile = getProfile();
 
   if (!profile || !profile.onboardingDone) {
-    // First visit — show onboarding
     showOnboarding();
   } else {
     applyProfile();
 
-    // If on dashboard with no weather yet, auto-search default city
     const cityInput = document.querySelector('.city-input');
     const hasWeather = document.querySelector('.weather-panel');
-    if (cityInput && profile.defaultCity && !hasWeather) {
-      cityInput.value = profile.defaultCity;
-      cityInput.closest('form')?.submit();
+
+    if (cityInput && !hasWeather) {
+      if (profile.useGeolocation) {
+        // Silently re-detect location (no prompt if permission already granted)
+        detectLocation().then(city => {
+          if (city) {
+            const p = getProfile() || {};
+            p.defaultCity = city;
+            saveProfile(p);
+            cityInput.value = city;
+            cityInput.closest('form')?.submit();
+          } else {
+            fallbackCity(cityInput, profile.defaultCity);
+          }
+        }).catch(() => fallbackCity(cityInput, profile.defaultCity));
+      } else if (profile.defaultCity) {
+        fallbackCity(cityInput, profile.defaultCity);
+      }
     }
   }
 })();
+
+function fallbackCity(input, city) {
+  if (!city) return;
+  input.value = city;
+  input.closest('form')?.submit();
+}
