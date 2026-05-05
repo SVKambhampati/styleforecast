@@ -29,9 +29,9 @@
     <div class="weather-panel">
       <div class="weather-city">{{ weather.city }}</div>
       <div class="weather-temp">
-        <span class="temp-big">{{ weather.temp_c }}°</span>
+        <span class="temp-big" data-c="{{ weather.temp_c }}" data-f="{{ weather.temp_f }}">{{ weather.temp_c }}°</span>
         <span class="temp-unit">C</span>
-        <span class="temp-alt">/ {{ weather.temp_f }}°F</span>
+        <span class="temp-alt" data-c="{{ weather.temp_c }}" data-f="{{ weather.temp_f }}">/ {{ weather.temp_f }}°F</span>
       </div>
       <div class="weather-condition">{{ weather.description }}</div>
 
@@ -109,7 +109,7 @@
         <p class="greeting-line" id="greetingLine"></p>
         <h1 class="section-title">Today's <em>Outfits</em></h1>
         {% if weather and recommendations %}
-        <p class="section-sub">{{ recommendations | length }} recommendation{{ 's' if recommendations | length != 1 else '' }} for {{ weather.temp_c }}°C, {{ weather.description | lower }}</p>
+        <p class="section-sub">{{ recommendations | length }} recommendation{{ 's' if recommendations | length != 1 else '' }} for <span class="temp-display" data-c="{{ weather.temp_c }}" data-f="{{ weather.temp_f }}">{{ weather.temp_c }}°C</span>, {{ weather.description | lower }}</p>
         {% endif %}
       </div>
       {% if weather %}

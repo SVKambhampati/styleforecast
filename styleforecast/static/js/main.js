@@ -578,10 +578,86 @@ document.querySelectorAll('.flash').forEach(el => {
 });
 
 // ============================================================
+// Settings — dark mode + temperature unit
+// ============================================================
+
+const THEME_KEY    = 'sf_theme';
+const TEMP_KEY     = 'sf_temp_unit';
+
+function getSetting(key, fallback) {
+  try { return localStorage.getItem(key) || fallback; } catch { return fallback; }
+}
+function setSetting(key, val) {
+  try { localStorage.setItem(key, val); } catch {}
+}
+
+function applyTheme(theme) {
+  document.documentElement.classList.toggle('dark', theme === 'dark');
+  const toggle = document.getElementById('darkModeToggle');
+  if (toggle) toggle.setAttribute('aria-checked', theme === 'dark' ? 'true' : 'false');
+}
+
+function applyTempUnit(unit) {
+  document.querySelectorAll('.temp-big[data-c]').forEach(el => {
+    el.textContent = (unit === 'F' ? el.dataset.f : el.dataset.c) + '°';
+  });
+  document.querySelectorAll('.temp-unit').forEach(el => {
+    el.textContent = unit;
+  });
+  document.querySelectorAll('.temp-alt[data-c]').forEach(el => {
+    el.textContent = unit === 'F' ? `/ ${el.dataset.c}°C` : `/ ${el.dataset.f}°F`;
+  });
+  document.querySelectorAll('.temp-display[data-c]').forEach(el => {
+    el.textContent = unit === 'F' ? `${el.dataset.f}°F` : `${el.dataset.c}°C`;
+  });
+  document.getElementById('unitBtnC')?.classList.toggle('active', unit === 'C');
+  document.getElementById('unitBtnF')?.classList.toggle('active', unit === 'F');
+}
+
+// Settings modal open / close
+const settingsModalOverlay = document.getElementById('settingsModalOverlay');
+
+document.getElementById('settingsBtn')?.addEventListener('click', () => {
+  settingsModalOverlay?.classList.add('open');
+  document.body.style.overflow = 'hidden';
+});
+document.getElementById('closeSettingsModal')?.addEventListener('click', () => {
+  settingsModalOverlay?.classList.remove('open');
+  document.body.style.overflow = '';
+});
+settingsModalOverlay?.addEventListener('click', (e) => {
+  if (e.target === settingsModalOverlay) {
+    settingsModalOverlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+});
+
+// Dark mode toggle
+document.getElementById('darkModeToggle')?.addEventListener('click', () => {
+  const next = getSetting(THEME_KEY, 'light') === 'dark' ? 'light' : 'dark';
+  setSetting(THEME_KEY, next);
+  applyTheme(next);
+});
+
+// Temperature unit
+document.getElementById('unitBtnC')?.addEventListener('click', () => {
+  setSetting(TEMP_KEY, 'C');
+  applyTempUnit('C');
+});
+document.getElementById('unitBtnF')?.addEventListener('click', () => {
+  setSetting(TEMP_KEY, 'F');
+  applyTempUnit('F');
+});
+
+// ============================================================
 // Init — runs on every page load
 // ============================================================
 
 (function init() {
+  // Apply persisted settings immediately
+  applyTheme(getSetting(THEME_KEY, 'light'));
+  applyTempUnit(getSetting(TEMP_KEY, 'C'));
+
   const profile = getProfile();
 
   if (!profile || !profile.onboardingDone) {

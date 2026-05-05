@@ -1456,3 +1456,110 @@ button { cursor: pointer; font-family: inherit; }
   .style-cards { grid-template-columns: 1fr; }
   .tour-card { width: calc(100vw - 48px); }
 }
+
+/* ── Dark Mode ──────────────────────────────────────────────── */
+html.dark {
+  --c-bg:        #18100a;
+  --c-surface:   #221a12;
+  --c-surface2:  #2c2318;
+  --c-border:    #3d3228;
+  --c-text:      #ede8e0;
+  --c-text-2:    #a09890;
+  --c-text-3:    #6b6358;
+  --c-charcoal:  #2c2318;
+  --shadow-sm:   0 1px 3px rgba(0,0,0,.3), 0 1px 2px rgba(0,0,0,.2);
+  --shadow-md:   0 4px 12px rgba(0,0,0,.4), 0 2px 4px rgba(0,0,0,.25);
+}
+
+html.dark .weather-panel        { background: var(--c-surface2); }
+html.dark .tour-card            { background: var(--c-surface); border-color: var(--c-border); }
+html.dark .tour-card-title      { color: var(--c-text); }
+html.dark .ob-dot               { background: var(--c-border); }
+html.dark .ob-dot.active        { background: var(--c-accent); }
+
+/* ── Settings button ────────────────────────────────────────── */
+.settings-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--c-border);
+  border-radius: 50%;
+  background: var(--c-surface);
+  color: var(--c-text-2);
+  cursor: pointer;
+  transition: background 150ms, color 150ms, border-color 150ms;
+}
+.settings-btn:hover { background: var(--c-surface2); color: var(--c-text); }
+
+/* ── Settings modal sections ────────────────────────────────── */
+.settings-section {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--c-border);
+}
+.settings-section:last-child { border-bottom: none; }
+.settings-label {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--c-text-3);
+  margin-bottom: 14px;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.settings-row-title { display: block; font-size: 14px; font-weight: 500; color: var(--c-text); }
+.settings-row-sub   { display: block; font-size: 12px; color: var(--c-text-3); margin-top: 2px; }
+
+/* ── Toggle switch ──────────────────────────────────────────── */
+.toggle-switch {
+  flex-shrink: 0;
+  position: relative;
+  width: 44px;
+  height: 26px;
+  background: var(--c-border);
+  border: none;
+  border-radius: 13px;
+  cursor: pointer;
+  transition: background 200ms;
+  padding: 0;
+}
+.toggle-switch[aria-checked="true"] { background: var(--c-accent); }
+.toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 200ms;
+  pointer-events: none;
+}
+.toggle-switch[aria-checked="true"] .toggle-thumb { transform: translateX(18px); }
+
+/* ── Unit toggle ────────────────────────────────────────────── */
+.unit-toggle {
+  display: flex;
+  flex-shrink: 0;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.unit-btn {
+  padding: 6px 14px;
+  border: none;
+  background: transparent;
+  color: var(--c-text-2);
+  font-family: var(--ff-mono);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 150ms, color 150ms;
+}
+.unit-btn.active { background: var(--c-accent); color: #fff; }
